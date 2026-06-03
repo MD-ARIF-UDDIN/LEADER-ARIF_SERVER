@@ -173,7 +173,7 @@ router.get('/project-collections', async (req, res) => {
     const dateFilter = buildDateFilter(req.query);
     
     const installments = await Installment.find(dateFilter)
-      .populate('project', 'projectName projectType driverName')
+      .populate('project', 'projectName projectType driverName driverMobile')
       .populate('recordedBy', 'name')
       .sort({ date: -1 });
 
@@ -239,6 +239,8 @@ router.get('/profits', async (req, res) => {
         _id: project._id,
         projectName: project.projectName,
         projectType: project.projectType,
+        driverName: project.driverName,
+        driverMobile: project.driverMobile,
         investmentAmount: project.investmentAmount,
         returnAmount: project.returnAmount,
         totalPaid,
