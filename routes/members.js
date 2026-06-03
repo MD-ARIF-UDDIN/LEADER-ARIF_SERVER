@@ -45,20 +45,11 @@ const generateMonthList = (startDate) => {
 
 // @desc    Get all members with calculations
 // @route   GET /api/members
-// @access  Private
+// @access  Private (all roles see all members)
 router.get('/', protect, async (req, res) => {
   try {
-    let query = {};
-    
-    // If role is member, restrict to their own member record
-    if (req.user.role === 'member') {
-      if (!req.user.memberId) {
-        return res.json([]); // Return empty list if no memberId linked
-      }
-      query._id = req.user.memberId;
-    }
-
-    const members = await Member.find(query).sort({ createdAt: -1 });
+    // All authenticated users (admin & member) can view all members
+    const members = await Member.find({}).sort({ createdAt: -1 });
     
     const membersWithCalculations = await Promise.all(
       members.map(async (member) => {
@@ -89,14 +80,10 @@ router.get('/', protect, async (req, res) => {
 
 // @desc    Get single member details with calculations & due schedules
 // @route   GET /api/members/:id
-// @access  Private
+// @access  Private (all roles can view any member)
 router.get('/:id', protect, async (req, res) => {
   try {
-    // If user is a member, they can only view their own profile
-    if (req.user.role === 'member' && String(req.user.memberId) !== req.params.id) {
-      return res.status(403).json({ message: 'অনুমোদিত নয়, আপনি শুধুমাত্র আপনার তথ্য দেখতে পারবেন' });
-    }
-
+    // All authenticated users can view any member's details
     const member = await Member.findById(req.params.id);
     if (!member) {
       return res.status(404).json({ message: 'সদস্য পাওয়া যায়নি' });
@@ -233,13 +220,10 @@ router.post('/:id/deposit', protect, admin, async (req, res) => {
 
 // @desc    Get member deposit history
 // @route   GET /api/members/:id/history
-// @access  Private
+// @access  Private (all roles can view any member's history)
 router.get('/:id/history', protect, async (req, res) => {
   try {
-    if (req.user.role === 'member' && String(req.user.memberId) !== req.params.id) {
-      return res.status(403).json({ message: 'অনুমোদিত নয়' });
-    }
-
+    // All authenticated users can view deposit history
     const deposits = await Deposit.find({ member: req.params.id })
       .populate('recordedBy', 'name')
       .sort({ date: -1 });

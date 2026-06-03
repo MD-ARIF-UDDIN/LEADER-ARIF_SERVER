@@ -48,21 +48,56 @@ const seedSystem = async () => {
       console.log('Admin user already exists.');
     }
 
-    // 3. Update all members' joiningDate to 01 Jul 2024
+    // 3. Create User accounts for all Members
+    console.log('\n--- Creating member user accounts ---');
+    const allMembers = await Member.find({}).sort({ memberId: 1 });
+    const createdCredentials = [];
+
+    for (const member of allMembers) {
+      const username = member.mobile;        // mobile number as username
+      const password = `tusomiti@${member.memberId}`; // e.g. arif@1001
+
+      // Skip if user already exists with this username
+      const existing = await User.findOne({ username });
+      if (existing) {
+        // Update the memberId link in case it's missing
+        if (!existing.memberId || String(existing.memberId) !== String(member._id)) {
+          existing.memberId = member._id;
+          await existing.save();
+        }
+        createdCredentials.push({ memberId: member.memberId, name: member.name, username, password: '(already existed — unchanged)', mobile: member.mobile });
+        console.log(`  SKIP  memberId ${member.memberId} (${member.name}) — user "${username}" already exists`);
+        continue;
+      }
+
+      await User.create({
+        name: member.name,
+        mobile: member.mobile,
+        username,
+        password,   // hashed by pre-save hook
+        role: 'member',
+        status: 'active',
+        memberId: member._id
+      });
+
+      createdCredentials.push({ memberId: member.memberId, name: member.name, username, password, mobile: member.mobile });
+      console.log(`  OK    memberId ${member.memberId} (${member.name}) — username: ${username}  password: ${password}`);
+    }
+
+    // 4. Update all members' joiningDate to 01 Jul 2024
     // Business rule: members pay current month's dues in the next month (arrears).
     // With billing cutoff = previous month, Jul 2024 -> May 2026 = 23 months x 2,000 = 46,000 tk
-    console.log("Updating all members' joiningDate to 2024-07-01...");
+    console.log("\nUpdating all members' joiningDate to 2024-07-01...");
     const targetDate = new Date('2024-07-01T00:00:00.000Z');
     const updateResult = await Member.updateMany({}, { $set: { joiningDate: targetDate } });
     console.log(`Updated joiningDate to 2024-07-01 for ${updateResult.matchedCount} members (modified: ${updateResult.modifiedCount}).`);
 
-    // 4. Seed per-member monthly deposits
+    // 5. Seed per-member monthly deposits
     // Business rule: members pay in arrears - July's dues are paid in August, etc.
     // Deposit date = 1st of the NEXT month after the due month.
     // Monthly rate = 2000 tk. Payments run consecutively from July 2024.
     //
     // memberId format: 1001, 1002, ..., 1016 (counter starts at 1000, first member = 1001)
-    // User IDs 1-16 map to memberIds 1001-1016.
     const memberBalances = [
       { memberId: '1',  totalPaid: 44000 },
       { memberId: '2',  totalPaid: 40000 },
@@ -94,7 +129,7 @@ const seedSystem = async () => {
       allMonths.push(`${y}-${m}`);
       cur.setMonth(cur.getMonth() + 1);
     }
-    console.log(`Month range: ${allMonths[0]} -> ${allMonths[allMonths.length - 1]} (${allMonths.length} months)`);
+    console.log(`\nMonth range: ${allMonths[0]} -> ${allMonths[allMonths.length - 1]} (${allMonths.length} months)`);
 
     // Clear all existing deposits before re-seeding
     const deleted = await Deposit.deleteMany({});
@@ -133,7 +168,27 @@ const seedSystem = async () => {
     }
 
     console.log(`\nTotal deposit records created: ${totalDepositsCreated}`);
-    console.log('Database seeding completed successfully.');
+
+    // ─────────────────────────────────────────────────────────────────
+    // PRINT FULL CREDENTIALS TABLE
+    // ─────────────────────────────────────────────────────────────────
+    console.log('\n╔════════════════════════════════════════════════════════════════════╗');
+    console.log('║              MEMBER LOGIN CREDENTIALS (SAVE THIS!)               ║');
+    console.log('╠══════════╦══════════════════════════╦══════════════════════════╦══╣');
+    console.log('║ MemberID ║ Name                     ║ Username (mobile)        ║ Password          ║');
+    console.log('╠══════════╬══════════════════════════╬══════════════════════════╬══╣');
+    for (const c of createdCredentials) {
+      const mid = c.memberId.padEnd(8);
+      const name = (c.name || '').substring(0, 24).padEnd(24);
+      const user = c.username.padEnd(24);
+      const pass = c.password.padEnd(18);
+      console.log(`║ ${mid} ║ ${name} ║ ${user} ║ ${pass} ║`);
+    }
+    console.log('╠══════════╩══════════════════════════╩══════════════════════════╩══╣');
+    console.log('║  ADMIN:  username: admin    |  password: password123            ║');
+    console.log('╚════════════════════════════════════════════════════════════════════╝');
+
+    console.log('\nDatabase seeding completed successfully.');
     process.exit(0);
   } catch (error) {
     console.error(`Seeding error: ${error.message}`);
