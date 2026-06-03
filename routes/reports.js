@@ -90,29 +90,37 @@ router.get('/dashboard', async (req, res) => {
   }
 });
 
-// Build date/month/year filter object for mongoose
+// Build date/month/year/range filter object for mongoose
 const buildDateFilter = (query) => {
-  const { date, month, year } = query;
+  const { date, month, year, startDate, endDate } = query;
   let filter = {};
 
   if (date) {
     // Single date filter (ignore time)
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
-    filter.date = { $gte: startDate, $lte: endDate };
+    const s = new Date(date);
+    s.setHours(0, 0, 0, 0);
+    const e = new Date(date);
+    e.setHours(23, 59, 59, 999);
+    filter.date = { $gte: s, $lte: e };
+  } else if (startDate && endDate) {
+    // Custom range filter
+    const s = new Date(startDate);
+    s.setHours(0, 0, 0, 0);
+    const e = new Date(endDate);
+    e.setHours(23, 59, 59, 999);
+    filter.date = { $gte: s, $lte: e };
   } else if (month) {
     // Format expects YYYY-MM
     const [y, m] = month.split('-');
-    const startDate = new Date(parseInt(y), parseInt(m) - 1, 1);
-    const endDate = new Date(parseInt(y), parseInt(m), 0, 23, 59, 59, 999);
-    filter.date = { $gte: startDate, $lte: endDate };
+    const s = new Date(parseInt(y), parseInt(m) - 1, 1);
+    const e = new Date(parseInt(y), parseInt(m), 0, 23, 59, 59, 999);
+    filter.date = { $gte: s, $lte: e };
   } else if (year) {
-    const startDate = new Date(parseInt(year), 0, 1);
-    const endDate = new Date(parseInt(year), 11, 31, 23, 59, 59, 999);
-    filter.date = { $gte: startDate, $lte: endDate };
+    const s = new Date(parseInt(year), 0, 1);
+    const e = new Date(parseInt(year), 11, 31, 23, 59, 59, 999);
+    filter.date = { $gte: s, $lte: e };
   }
+  // If none of the above match, filter stays {} → returns all records (all time)
 
   return filter;
 };
