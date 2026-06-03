@@ -9,14 +9,18 @@ const { protect } = require('../middleware/auth');
 router.use(protect);
 
 // Helper to calculate months elapsed
+// Billing cutoff is PREVIOUS month: members pay current month's dues in the next month
+// e.g. In June, they pay May's dues → June is NOT yet billable
 const calculateMonthsElapsed = (joiningDate) => {
   const start = new Date(joiningDate);
-  const end = new Date();
-  if (start > end) return 0;
+  const now = new Date();
+  // Billing ends at previous month
+  const billingEnd = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  if (start > billingEnd) return 0;
   const startYear = start.getFullYear();
   const startMonth = start.getMonth();
-  const endYear = end.getFullYear();
-  const endMonth = end.getMonth();
+  const endYear = billingEnd.getFullYear();
+  const endMonth = billingEnd.getMonth();
   return (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
 };
 

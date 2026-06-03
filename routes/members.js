@@ -4,30 +4,36 @@ const Member = require('../models/Member');
 const Deposit = require('../models/Deposit');
 const { protect, admin } = require('../middleware/auth');
 
-// Helper to calculate months elapsed since joining date (inclusive of joining month and current month)
+// Helper to calculate months elapsed since joining date
+// Billing cutoff is PREVIOUS month: members pay current month's dues in the next month
+// e.g. In June, they pay May's dues → June is NOT yet billable
 const calculateMonthsElapsed = (joiningDate) => {
   const start = new Date(joiningDate);
-  const end = new Date();
-  if (start > end) return 0;
+  const now = new Date();
+  // Billing ends at previous month
+  const billingEnd = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  if (start > billingEnd) return 0;
   
   const startYear = start.getFullYear();
   const startMonth = start.getMonth(); // 0-11
-  const endYear = end.getFullYear();
-  const endMonth = end.getMonth(); // 0-11
+  const endYear = billingEnd.getFullYear();
+  const endMonth = billingEnd.getMonth(); // 0-11
   
   return (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
 };
 
-// Helper to generate list of months from start date to current month
+// Helper to generate list of months from start date to previous month (billing cutoff)
+// Members pay current month's dues in the next month, so current month is not yet billable
 const generateMonthList = (startDate) => {
   const start = new Date(startDate);
-  const end = new Date();
+  const now = new Date();
   const list = [];
   
   let current = new Date(start.getFullYear(), start.getMonth(), 1);
-  const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+  // Billing ends at previous month
+  const billingEnd = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   
-  while (current <= endMonth) {
+  while (current <= billingEnd) {
     const year = current.getFullYear();
     const month = String(current.getMonth() + 1).padStart(2, '0');
     list.push(`${year}-${month}`);
