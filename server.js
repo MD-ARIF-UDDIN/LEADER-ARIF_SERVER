@@ -23,6 +23,11 @@ app.use('/api/members', require('./routes/members'));
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/reports', require('./routes/reports'));
 
+// Ping endpoint for keep-alive and health checks
+app.get('/api/ping', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Server is awake' });
+});
+
 // Serve static frontend assets in production mode
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../frontend/dist')));
