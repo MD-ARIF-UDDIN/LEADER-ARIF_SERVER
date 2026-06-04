@@ -4,6 +4,7 @@ const Member = require('../models/Member');
 const Deposit = require('../models/Deposit');
 const Project = require('../models/Project');
 const Installment = require('../models/Installment');
+const Expense = require('../models/Expense');
 const { protect } = require('../middleware/auth');
 
 router.use(protect);
@@ -74,6 +75,10 @@ router.get('/dashboard', async (req, res) => {
     // 8. Active Projects
     const activeProjects = await Project.countDocuments({ status: 'active' });
 
+    // 9. Total Expenses
+    const expenses = await Expense.find({});
+    const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+
     res.json({
       totalMembers,
       totalDeposits,
@@ -83,7 +88,8 @@ router.get('/dashboard', async (req, res) => {
       totalInvestments,
       totalInstallmentsCollected,
       totalProfit,
-      activeProjects
+      activeProjects,
+      totalExpenses
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

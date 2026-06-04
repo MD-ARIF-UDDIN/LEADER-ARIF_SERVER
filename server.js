@@ -22,6 +22,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/members', require('./routes/members'));
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/expenses', require('./routes/expenses'));
 
 // Ping endpoint for keep-alive and health checks
 app.get('/api/ping', (req, res) => {
