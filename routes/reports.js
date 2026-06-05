@@ -273,4 +273,96 @@ router.get('/profits', async (req, res) => {
   }
 });
 
+// @desc    Get Member Summary Report (total deposited, total due, current balance, future balance after projects)
+// @route   GET /api/reports/member-summary
+// @access  Private
+router.get('/member-summary', async (req, res) => {
+  try {
+    const members = await Member.find({});
+    const deposits = await Deposit.find({});
+    const projects = await Project.find({});
+    const installments = await Installment.find({});
+    const expenses = await Expense.find({});
+
+    const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const totalInstallmentsCollected = installments.reduce((sum, inst) => sum + inst.amount, 0);
+    const totalInvestments = projects.reduce((sum, proj) => sum + proj.investmentAmount, 0);
+
+    // Total target return from all projects (what members will eventually get back)
+    const totalTargetReturn = projects.reduce((sum, proj) => sum + proj.returnAmount, 0);
+
+    // Current fund balance = totalDeposits + totalInstallmentsCollected - totalInvestments - totalExpenses
+    const totalDeposits = deposits.reduce((sum, dep) => sum + dep.amount, 0);
+    const currentBalance = totalDeposits + totalInstallmentsCollected - totalInvestments - totalExpenses;
+
+    // Future balance = currentBalance + remaining project returns (returnAmount - totalPaid for each project)
+    const totalRemainingProjectReturn = projects.reduce((sum, proj) => {
+      const projInstallments = installments.filter(inst => String(inst.project) === String(proj._id));
+      const totalPaid = projInstallments.reduce((s, inst) => s + inst.amount, 0);
+      const remaining = Math.max(0, proj.returnAmount - totalPaid);
+      return sum + remaining;
+    }, 0);
+
+    const futureBalance = currentBalance + totalRemainingProjectReturn;
+
+    // Per-member breakdown with profit share
+    // Each member's profit share = proportional to their totalDeposited / totalDeposits
+    const memberReport = members.map(member => {
+      const memberDeposits = deposits.filter(dep => String(dep.member) === String(member._id));
+      const totalDeposited = memberDeposits.reduce((sum, dep) => sum + dep.amount, 0);
+      const monthsElapsed = calculateMonthsElapsed(member.joiningDate);
+      const expectedDeposits = monthsElapsed * member.monthlyDepositAmount;
+      const totalDue = Math.max(0, expectedDeposits - totalDeposited);
+
+      // Proportional share of fund based on deposited amount
+      const depositShare = totalDeposits > 0 ? totalDeposited / totalDeposits : 0;
+
+      // Column 1: Current profit share based on current balance
+      const currentProfit = currentBalance * depositShare;
+
+      // Column 2: Future profit share when ALL projects return full target amount
+      const futureProfit = futureBalance * depositShare;
+
+      return {
+        _id: member._id,
+        memberId: member.memberId,
+        name: member.name,
+        mobile: member.mobile,
+        monthlyDepositAmount: member.monthlyDepositAmount,
+        totalDeposited,
+        totalDue,
+        depositSharePercent: Math.round(depositShare * 10000) / 100, // e.g. 12.34
+        currentProfit: Math.round(currentProfit),
+        futureProfit: Math.round(futureProfit),
+        status: member.status
+      };
+    });
+
+    res.json({
+      memberReport,
+      summary: {
+        totalMembers: members.length,
+        totalDeposited: totalDeposits,
+        totalMemberDue: members.reduce((sum, member) => {
+          const memberDeposits = deposits.filter(dep => String(dep.member) === String(member._id));
+          const totalDeposited = memberDeposits.reduce((s, dep) => s + dep.amount, 0);
+          const monthsElapsed = calculateMonthsElapsed(member.joiningDate);
+          const expectedDeposits = monthsElapsed * member.monthlyDepositAmount;
+          return sum + Math.max(0, expectedDeposits - totalDeposited);
+        }, 0),
+        currentBalance,
+        futureBalance,
+        totalExpenses,
+        totalInstallmentsCollected,
+        totalInvestments,
+        totalTargetReturn,
+        totalRemainingProjectReturn
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
+

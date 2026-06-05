@@ -218,7 +218,7 @@ const seedSystem = async () => {
         returnAmount: 96000,
         startDate: new Date('2024-10-11T00:00:00.000Z'),
         installmentDuration: 10,
-        monthlyInstallmentAmount: 9600,
+        monthlyInstallmentAmount: 10000,
         totalPaid: 96000,
         status: "completed"
       },
@@ -235,7 +235,7 @@ const seedSystem = async () => {
         returnAmount: 127300,
         startDate: new Date('2024-01-01T00:00:00.000Z'),
         installmentDuration: 13,
-        monthlyInstallmentAmount: 9792,
+        monthlyInstallmentAmount: 10000,
         totalPaid: 127300,
         status: "completed"
       },
@@ -268,8 +268,8 @@ const seedSystem = async () => {
         investmentAmount: 122000,
         returnAmount: 152000,
         startDate: new Date('2025-05-21T00:00:00.000Z'),
-        installmentDuration: 15,
-        monthlyInstallmentAmount: 10133,
+        installmentDuration: 16,
+        monthlyInstallmentAmount: 10000,
         totalPaid: 126500,
         status: "active"
       },
@@ -302,8 +302,8 @@ const seedSystem = async () => {
         investmentAmount: 91000,
         returnAmount: 121000,
         startDate: new Date('2025-07-01T00:00:00.000Z'),
-        installmentDuration: 12,
-        monthlyInstallmentAmount: 10083,
+        installmentDuration: 13,
+        monthlyInstallmentAmount: 10000,
         totalPaid: 79000,
         status: "active"
       },
@@ -320,7 +320,7 @@ const seedSystem = async () => {
         returnAmount: 124000,
         startDate: new Date('2025-07-06T00:00:00.000Z'),
         installmentDuration: 13,
-        monthlyInstallmentAmount: 9538,
+        monthlyInstallmentAmount: 10000,
         totalPaid: 114000,
         status: "active"
       },
@@ -336,8 +336,8 @@ const seedSystem = async () => {
         investmentAmount: 66000,
         returnAmount: 75000,
         startDate: new Date('2025-07-21T00:00:00.000Z'),
-        installmentDuration: 12,
-        monthlyInstallmentAmount: 6250,
+        installmentDuration: 8,
+        monthlyInstallmentAmount: 10000,
         totalPaid: 75000,
         status: "completed"
       },
@@ -404,8 +404,8 @@ const seedSystem = async () => {
         investmentAmount: 127500,
         returnAmount: 157500,
         startDate: new Date('2025-11-05T00:00:00.000Z'),
-        installmentDuration: 15,
-        monthlyInstallmentAmount: 10500,
+        installmentDuration: 16,
+        monthlyInstallmentAmount: 10000,
         totalPaid: 59500,
         status: "active"
       },
@@ -422,7 +422,7 @@ const seedSystem = async () => {
         returnAmount: 125000,
         startDate: new Date('2025-12-12T00:00:00.000Z'),
         installmentDuration: 13,
-        monthlyInstallmentAmount: 9615,
+        monthlyInstallmentAmount: 10000,
         totalPaid: 47500,
         status: "active"
       },
@@ -438,8 +438,8 @@ const seedSystem = async () => {
         investmentAmount: 120000,
         returnAmount: 127000,
         startDate: new Date('2026-02-15T00:00:00.000Z'),
-        installmentDuration: 12,
-        monthlyInstallmentAmount: 10583,
+        installmentDuration: 13,
+        monthlyInstallmentAmount: 10000,
         totalPaid: 127000,
         status: "completed"
       },
@@ -456,7 +456,7 @@ const seedSystem = async () => {
         returnAmount: 65000,
         startDate: new Date('2026-03-14T00:00:00.000Z'),
         installmentDuration: 11,
-        monthlyInstallmentAmount: 5909,
+        monthlyInstallmentAmount: 6000,
         totalPaid: 12000,
         status: "active"
       },
@@ -490,7 +490,7 @@ const seedSystem = async () => {
         returnAmount: 218000,
         startDate: new Date('2026-05-28T00:00:00.000Z'),
         installmentDuration: 19,
-        monthlyInstallmentAmount: 11474,
+        monthlyInstallmentAmount: 12000,
         totalPaid: 20000,
         status: "active"
       }
