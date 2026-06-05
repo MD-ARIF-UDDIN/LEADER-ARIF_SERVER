@@ -305,8 +305,24 @@ router.get('/member-summary', async (req, res) => {
 
     const futureBalance = currentBalance + totalRemainingProjectReturn;
 
-    // Per-member breakdown with profit share
-    // Each member's profit share = proportional to their totalDeposited / totalDeposits
+    // Total profit target from all projects
+    const totalTargetProfit = projects.reduce((sum, proj) => sum + (proj.returnAmount - proj.investmentAmount), 0);
+
+    // Current profit earned from all projects (proportional to collections)
+    const totalCurrentProfitEarned = projects.reduce((sum, proj) => {
+      const projInstallments = installments.filter(inst => String(inst.project) === String(proj._id));
+      const totalPaid = projInstallments.reduce((s, inst) => s + inst.amount, 0);
+      const profitRatio = proj.returnAmount > 0 ? (proj.returnAmount - proj.investmentAmount) / proj.returnAmount : 0;
+      const earnedProfit = totalPaid * profitRatio;
+      return sum + earnedProfit;
+    }, 0);
+
+    // Profit pools after subtracting expenses
+    const currentProfitPool = Math.max(0, totalCurrentProfitEarned - totalExpenses);
+    const futureProfitPool = Math.max(0, totalTargetProfit - totalExpenses);
+
+    // Per-member breakdown with profit share & balance share
+    // Each member's share = proportional to their totalDeposited / totalDeposits
     const memberReport = members.map(member => {
       const memberDeposits = deposits.filter(dep => String(dep.member) === String(member._id));
       const totalDeposited = memberDeposits.reduce((sum, dep) => sum + dep.amount, 0);
@@ -317,11 +333,13 @@ router.get('/member-summary', async (req, res) => {
       // Proportional share of fund based on deposited amount
       const depositShare = totalDeposits > 0 ? totalDeposited / totalDeposits : 0;
 
-      // Column 1: Current profit share based on current balance
-      const currentProfit = currentBalance * depositShare;
+      // Profit shares
+      const currentProfit = currentProfitPool * depositShare;
+      const futureProfit = futureProfitPool * depositShare;
 
-      // Column 2: Future profit share when ALL projects return full target amount
-      const futureProfit = futureBalance * depositShare;
+      // Balance shares (including deposits and their profit share)
+      const memberCurrentBalance = currentBalance * depositShare;
+      const memberFutureBalance = futureBalance * depositShare;
 
       return {
         _id: member._id,
@@ -334,6 +352,8 @@ router.get('/member-summary', async (req, res) => {
         depositSharePercent: Math.round(depositShare * 10000) / 100, // e.g. 12.34
         currentProfit: Math.round(currentProfit),
         futureProfit: Math.round(futureProfit),
+        currentBalance: Math.round(memberCurrentBalance),
+        futureBalance: Math.round(memberFutureBalance),
         status: member.status
       };
     });
@@ -356,7 +376,9 @@ router.get('/member-summary', async (req, res) => {
         totalInstallmentsCollected,
         totalInvestments,
         totalTargetReturn,
-        totalRemainingProjectReturn
+        totalRemainingProjectReturn,
+        currentProfitPool: Math.round(currentProfitPool),
+        futureProfitPool: Math.round(futureProfitPool)
       }
     });
   } catch (error) {
