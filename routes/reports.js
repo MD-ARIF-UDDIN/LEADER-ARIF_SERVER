@@ -251,7 +251,17 @@ router.get('/profits', async (req, res) => {
     const profitsReport = projects.map(project => {
       const projInstallments = installments.filter(inst => String(inst.project) === String(project._id));
       const totalPaid = projInstallments.reduce((sum, inst) => sum + inst.amount, 0);
+      
+      // Total target profit
       const profit = project.returnAmount - project.investmentAmount;
+      
+      // Current earned profit (based on installments collected)
+      // profitRatio = (return - investment) / return
+      const profitRatio = project.returnAmount > 0 ? (project.returnAmount - project.investmentAmount) / project.returnAmount : 0;
+      const currentProfit = Math.round(totalPaid * profitRatio);
+      
+      // Future profit = target profit - current profit earned
+      const futureProfit = profit - currentProfit;
 
       return {
         _id: project._id,
@@ -263,6 +273,8 @@ router.get('/profits', async (req, res) => {
         returnAmount: project.returnAmount,
         totalPaid,
         profit,
+        currentProfit,
+        futureProfit,
         status: project.status
       };
     });
