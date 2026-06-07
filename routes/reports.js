@@ -83,12 +83,11 @@ router.get('/dashboard', async (req, res) => {
     // 7. Total Profit (Return Amount - Investment Amount for all projects)
     const totalProfit = projects.reduce((sum, proj) => sum + (proj.returnAmount - proj.investmentAmount), 0);
 
-    // Realized Profit (current earned profit based on installments collected)
+    // Realized Profit (amount received after recovering the main investment amount)
     const totalRealizedProfit = projects.reduce((sum, proj) => {
       const projInstallments = installments.filter(inst => String(inst.project) === String(proj._id));
       const totalPaid = projInstallments.reduce((s, inst) => s + inst.amount, 0);
-      const profitRatio = proj.returnAmount > 0 ? (proj.returnAmount - proj.investmentAmount) / proj.returnAmount : 0;
-      const earnedProfit = totalPaid * profitRatio;
+      const earnedProfit = Math.max(0, totalPaid - proj.investmentAmount);
       return sum + earnedProfit;
     }, 0);
 
@@ -276,10 +275,8 @@ router.get('/profits', async (req, res) => {
       // Total target profit
       const profit = project.returnAmount - project.investmentAmount;
       
-      // Current earned profit (based on installments collected)
-      // profitRatio = (return - investment) / return
-      const profitRatio = project.returnAmount > 0 ? (project.returnAmount - project.investmentAmount) / project.returnAmount : 0;
-      const currentProfit = Math.round(totalPaid * profitRatio);
+      // Current earned profit (amount received after recovering the main investment amount)
+      const currentProfit = Math.max(0, totalPaid - project.investmentAmount);
       
       // Future profit = target profit - current profit earned
       const futureProfit = profit - currentProfit;
@@ -341,12 +338,11 @@ router.get('/member-summary', async (req, res) => {
     // Total profit target from all projects
     const totalTargetProfit = projects.reduce((sum, proj) => sum + (proj.returnAmount - proj.investmentAmount), 0);
 
-    // Current profit earned from all projects (proportional to collections)
+    // Current profit earned from all projects (amount received after recovering the main investment amount)
     const totalCurrentProfitEarned = projects.reduce((sum, proj) => {
       const projInstallments = installments.filter(inst => String(inst.project) === String(proj._id));
       const totalPaid = projInstallments.reduce((s, inst) => s + inst.amount, 0);
-      const profitRatio = proj.returnAmount > 0 ? (proj.returnAmount - proj.investmentAmount) / proj.returnAmount : 0;
-      const earnedProfit = totalPaid * profitRatio;
+      const earnedProfit = Math.max(0, totalPaid - proj.investmentAmount);
       return sum + earnedProfit;
     }, 0);
 
