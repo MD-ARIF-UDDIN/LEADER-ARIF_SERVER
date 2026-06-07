@@ -15,13 +15,24 @@ router.use(protect);
 const calculateMonthsElapsed = (joiningDate) => {
   const start = new Date(joiningDate);
   const now = new Date();
-  // Billing ends at previous month
-  const billingEnd = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  if (start > billingEnd) return 0;
+  
   const startYear = start.getFullYear();
   const startMonth = start.getMonth();
-  const endYear = billingEnd.getFullYear();
-  const endMonth = billingEnd.getMonth();
+  
+  const nowYear = now.getFullYear();
+  const nowMonth = now.getMonth();
+  
+  let endYear = nowYear;
+  let endMonth = nowMonth - 1;
+  if (endMonth < 0) {
+    endMonth = 11;
+    endYear -= 1;
+  }
+  
+  if (startYear > endYear || (startYear === endYear && startMonth > endMonth)) {
+    return 0;
+  }
+  
   return (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
 };
 
@@ -72,6 +83,15 @@ router.get('/dashboard', async (req, res) => {
     // 7. Total Profit (Return Amount - Investment Amount for all projects)
     const totalProfit = projects.reduce((sum, proj) => sum + (proj.returnAmount - proj.investmentAmount), 0);
 
+    // Realized Profit (current earned profit based on installments collected)
+    const totalRealizedProfit = projects.reduce((sum, proj) => {
+      const projInstallments = installments.filter(inst => String(inst.project) === String(proj._id));
+      const totalPaid = projInstallments.reduce((s, inst) => s + inst.amount, 0);
+      const profitRatio = proj.returnAmount > 0 ? (proj.returnAmount - proj.investmentAmount) / proj.returnAmount : 0;
+      const earnedProfit = totalPaid * profitRatio;
+      return sum + earnedProfit;
+    }, 0);
+
     // 8. Active Projects
     const activeProjects = await Project.countDocuments({ status: 'active' });
 
@@ -88,6 +108,7 @@ router.get('/dashboard', async (req, res) => {
       totalInvestments,
       totalInstallmentsCollected,
       totalProfit,
+      totalRealizedProfit: Math.round(totalRealizedProfit),
       activeProjects,
       totalExpenses
     });
