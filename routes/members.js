@@ -234,4 +234,56 @@ router.get('/:id/history', protect, async (req, res) => {
   }
 });
 
+// @desc    Edit member deposit
+// @route   PUT /api/members/deposit/:depositId
+// @access  Private/Admin
+router.put('/deposit/:depositId', protect, admin, async (req, res) => {
+  const { amount, month, date } = req.body;
+
+  try {
+    const deposit = await Deposit.findById(req.params.depositId);
+    if (!deposit) {
+      return res.status(404).json({ message: 'জমা পাওয়া যায়নি' });
+    }
+
+    if (amount !== undefined) {
+      if (amount <= 0) {
+        return res.status(400).json({ message: 'সঠিক জমার পরিমাণ দিন' });
+      }
+      deposit.amount = Number(amount);
+    }
+    if (month !== undefined) {
+      if (!month) {
+        return res.status(400).json({ message: 'মাস উল্লেখ করুন' });
+      }
+      deposit.month = month;
+    }
+    if (date !== undefined) {
+      deposit.date = new Date(date);
+    }
+
+    const updatedDeposit = await deposit.save();
+    res.json(updatedDeposit);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// @desc    Delete member deposit
+// @route   DELETE /api/members/deposit/:depositId
+// @access  Private/Admin
+router.delete('/deposit/:depositId', protect, admin, async (req, res) => {
+  try {
+    const deposit = await Deposit.findById(req.params.depositId);
+    if (!deposit) {
+      return res.status(404).json({ message: 'জমা পাওয়া যায়নি' });
+    }
+
+    await deposit.deleteOne();
+    res.json({ message: 'জমা সফলভাবে মুছে ফেলা হয়েছে' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

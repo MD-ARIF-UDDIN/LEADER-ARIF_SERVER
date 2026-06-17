@@ -272,4 +272,56 @@ router.get('/:id/history', protect, async (req, res) => {
   }
 });
 
+// @desc    Edit project installment
+// @route   PUT /api/projects/installment/:installmentId
+// @access  Private/Admin
+router.put('/installment/:installmentId', protect, admin, async (req, res) => {
+  const { amount, month, date } = req.body;
+
+  try {
+    const installment = await Installment.findById(req.params.installmentId);
+    if (!installment) {
+      return res.status(404).json({ message: 'কিস্তি পাওয়া যায়নি' });
+    }
+
+    if (amount !== undefined) {
+      if (amount <= 0) {
+        return res.status(400).json({ message: 'সঠিক কিস্তির পরিমাণ দিন' });
+      }
+      installment.amount = Number(amount);
+    }
+    if (month !== undefined) {
+      if (!month) {
+        return res.status(400).json({ message: 'মাস উল্লেখ করুন' });
+      }
+      installment.month = month;
+    }
+    if (date !== undefined) {
+      installment.date = new Date(date);
+    }
+
+    const updatedInstallment = await installment.save();
+    res.json(updatedInstallment);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// @desc    Delete project installment
+// @route   DELETE /api/projects/installment/:installmentId
+// @access  Private/Admin
+router.delete('/installment/:installmentId', protect, admin, async (req, res) => {
+  try {
+    const installment = await Installment.findById(req.params.installmentId);
+    if (!installment) {
+      return res.status(404).json({ message: 'কিস্তি পাওয়া যায়নি' });
+    }
+
+    await installment.deleteOne();
+    res.json({ message: 'কিস্তি সফলভাবে মুছে ফেলা হয়েছে' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
