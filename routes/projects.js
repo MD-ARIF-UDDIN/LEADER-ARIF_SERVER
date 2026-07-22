@@ -38,31 +38,37 @@ const generateProjectMonthsList = (startDate, durationMonths) => {
 // @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    const projects = await Project.find({}).sort({ createdAt: -1 });
+    const [projects, allInstallments] = await Promise.all([
+      Project.find({}).sort({ createdAt: -1 }),
+      Installment.find({})
+    ]);
 
-    const projectsWithCalculations = await Promise.all(
-      projects.map(async (project) => {
-        const installments = await Installment.find({ project: project._id });
-        const totalPaid = installments.reduce((sum, inst) => sum + inst.amount, 0);
+    const installmentMap = new Map();
+    for (const inst of allInstallments) {
+      const key = String(inst.project);
+      installmentMap.set(key, (installmentMap.get(key) || 0) + inst.amount);
+    }
 
-        const monthsElapsed = calculateMonthsElapsed(project.startDate);
-        const activeMonths = Math.min(project.installmentDuration, monthsElapsed);
-        const expectedInstallments = activeMonths * project.monthlyInstallmentAmount;
+    const projectsWithCalculations = projects.map((project) => {
+      const totalPaid = installmentMap.get(String(project._id)) || 0;
 
-        const totalDue = Math.max(0, expectedInstallments - totalPaid);
-        const remainingBalance = Math.max(0, project.returnAmount - totalPaid);
-        const profit = project.returnAmount - project.investmentAmount;
+      const monthsElapsed = calculateMonthsElapsed(project.startDate);
+      const activeMonths = Math.min(project.installmentDuration, monthsElapsed);
+      const expectedInstallments = activeMonths * project.monthlyInstallmentAmount;
 
-        return {
-          ...project.toObject(),
-          totalPaid,
-          totalDue,
-          remainingBalance,
-          profit,
-          monthsElapsed
-        };
-      })
-    );
+      const totalDue = Math.max(0, expectedInstallments - totalPaid);
+      const remainingBalance = Math.max(0, project.returnAmount - totalPaid);
+      const profit = project.returnAmount - project.investmentAmount;
+
+      return {
+        ...project.toObject(),
+        totalPaid,
+        totalDue,
+        remainingBalance,
+        profit,
+        monthsElapsed
+      };
+    });
 
     res.json(projectsWithCalculations);
   } catch (error) {

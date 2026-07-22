@@ -49,28 +49,35 @@ const generateMonthList = (startDate) => {
 router.get('/', protect, async (req, res) => {
   try {
     // All authenticated users (admin & member) can view all members
-    const members = await Member.find({}).sort({ createdAt: -1 });
-    
-    const membersWithCalculations = await Promise.all(
-      members.map(async (member) => {
-        const deposits = await Deposit.find({ member: member._id });
-        const totalDeposited = deposits.reduce((sum, dep) => sum + dep.amount, 0);
-        
-        const monthsElapsed = calculateMonthsElapsed(member.joiningDate);
-        const expectedDeposits = monthsElapsed * member.monthlyDepositAmount;
-        
-        const totalDue = Math.max(0, expectedDeposits - totalDeposited);
-        const currentBalance = totalDeposited;
+    const [members, allDeposits] = await Promise.all([
+      Member.find({}).sort({ createdAt: -1 }),
+      Deposit.find({})
+    ]);
 
-        return {
-          ...member.toObject(),
-          totalDeposited,
-          totalDue,
-          currentBalance,
-          monthsElapsed
-        };
-      })
-    );
+    // Group deposits by member ID for fast O(1) lookup
+    const depositMap = new Map();
+    for (const dep of allDeposits) {
+      const key = String(dep.member);
+      depositMap.set(key, (depositMap.get(key) || 0) + dep.amount);
+    }
+    
+    const membersWithCalculations = members.map((member) => {
+      const totalDeposited = depositMap.get(String(member._id)) || 0;
+      
+      const monthsElapsed = calculateMonthsElapsed(member.joiningDate);
+      const expectedDeposits = monthsElapsed * member.monthlyDepositAmount;
+      
+      const totalDue = Math.max(0, expectedDeposits - totalDeposited);
+      const currentBalance = totalDeposited;
+
+      return {
+        ...member.toObject(),
+        totalDeposited,
+        totalDue,
+        currentBalance,
+        monthsElapsed
+      };
+    });
 
     res.json(membersWithCalculations);
   } catch (error) {

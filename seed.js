@@ -50,6 +50,25 @@ const seedSystem = async () => {
       console.log('Admin user already exists.');
     }
 
+    // 2b. Seed developer admin user
+    const developerUser = await User.findOne({ username: 'developer' });
+    if (!developerUser) {
+      await User.create({
+        name: 'Developer',
+        mobile: '01700000001',
+        username: 'developer',
+        password: 'developer123arif', // Will be hashed by User pre-save hook
+        role: 'admin',
+        status: 'active'
+      });
+      console.log('Developer admin user created successfully.');
+      console.log('Username: developer');
+      console.log('Password: developer123arif');
+    } else {
+      console.log('Developer user already exists.');
+    }
+
+
     // 3. Create User accounts for all Members
     // First: delete all existing member-role users so we recreate them fresh
     console.log('\n--- Creating member user accounts ---');
@@ -105,15 +124,15 @@ const seedSystem = async () => {
     //
     // memberId format: 1001, 1002, ..., 1016 (counter starts at 1000, first member = 1001)
     const memberBalances = [
-      { memberId: '1',  totalPaid: 44000 },
-      { memberId: '2',  totalPaid: 40000 },
-      { memberId: '3',  totalPaid: 36000 },
-      { memberId: '4',  totalPaid: 42000 },
-      { memberId: '5',  totalPaid: 40000 },
-      { memberId: '6',  totalPaid: 40000 },
-      { memberId: '7',  totalPaid: 44000 },
-      { memberId: '8',  totalPaid: 36000 },
-      { memberId: '9',  totalPaid: 44000 },
+      { memberId: '1', totalPaid: 44000 },
+      { memberId: '2', totalPaid: 40000 },
+      { memberId: '3', totalPaid: 36000 },
+      { memberId: '4', totalPaid: 42000 },
+      { memberId: '5', totalPaid: 40000 },
+      { memberId: '6', totalPaid: 40000 },
+      { memberId: '7', totalPaid: 44000 },
+      { memberId: '8', totalPaid: 36000 },
+      { memberId: '9', totalPaid: 44000 },
       { memberId: '10', totalPaid: 42000 },
       { memberId: '11', totalPaid: 40000 },
       { memberId: '12', totalPaid: 44000 },
@@ -198,7 +217,7 @@ const seedSystem = async () => {
     // 5. Seed Projects and Installments
     // ─────────────────────────────────────────────────────────────────
     console.log('\n--- Seeding projects and installments ---');
-    
+
     // Clear all existing projects and installments
     const deletedProjects = await Project.deleteMany({});
     const deletedInstallments = await Installment.deleteMany({});
@@ -567,8 +586,8 @@ const seedSystem = async () => {
       });
 
       const elapsed = calculateMonthsElapsedLocal(pData.startDate);
-      const activeMonths = pData.status === 'completed' 
-        ? pData.installmentDuration 
+      const activeMonths = pData.status === 'completed'
+        ? pData.installmentDuration
         : Math.min(pData.installmentDuration, elapsed);
 
       const monthsList = generateProjectMonthsListLocal(pData.startDate, activeMonths);
@@ -581,7 +600,7 @@ const seedSystem = async () => {
         if (amount > 0) {
           const [y, m] = monthStr.split('-').map(Number);
           const paymentDate = new Date(y, m - 1, 15);
-          
+
           installmentsToInsert.push({
             project: project._id,
             amount: amount,
@@ -596,7 +615,7 @@ const seedSystem = async () => {
         await Installment.insertMany(installmentsToInsert);
         totalInstallmentsCreated += installmentsToInsert.length;
       }
-      
+
       console.log(`  OK project for ${pData.driverName}: Created ${installmentsToInsert.length} installments totaling ${pData.totalPaid} (Remaining Dues: ${pData.returnAmount - pData.totalPaid})`);
     }
 
