@@ -29,19 +29,10 @@ app.get('/api/ping', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is awake' });
 });
 
-// Serve static frontend assets in production mode
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/dist')));
-  
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html'));
-  });
-} else {
-  // Root Endpoint
-  app.get('/', (req, res) => {
-    res.send('Somiti Management System API is running...');
-  });
-}
+// Root Endpoint
+app.get('/', (req, res) => {
+  res.status(200).send('Somiti Management System API is running...');
+});
 
 // Custom Error Handling Middleware
 app.use((err, req, res, next) => {
