@@ -116,6 +116,19 @@ router.get('/dashboard', async (req, res) => {
   }
 });
 
+// Helper to normalize month string to YYYY-MM format
+const normalizeMonth = (m) => {
+  if (!m) return '';
+  const trimmed = String(m).trim();
+  const parts = trimmed.split('-');
+  if (parts.length === 2) {
+    const year = parts[0];
+    const month = parts[1].padStart(2, '0');
+    return `${year}-${month}`;
+  }
+  return trimmed;
+};
+
 // Build date/month/year/range filter object for mongoose
 const buildDateFilter = (query) => {
   const { date, month, year, startDate, endDate } = query;
@@ -137,7 +150,8 @@ const buildDateFilter = (query) => {
     filter.date = { $gte: s, $lte: e };
   } else if (month) {
     // Format expects YYYY-MM
-    const [y, m] = month.split('-');
+    const normMonth = normalizeMonth(month);
+    const [y, m] = normMonth.split('-');
     const s = new Date(parseInt(y), parseInt(m) - 1, 1);
     const e = new Date(parseInt(y), parseInt(m), 0, 23, 59, 59, 999);
     filter.date = { $gte: s, $lte: e };
@@ -352,6 +366,7 @@ router.get('/member-summary', async (req, res) => {
 
     // Per-member breakdown with profit share & balance share
     // Each member's share = proportional to their totalDeposited / totalDeposits
+    let totalAllocatedPercent = 0;
     const memberReport = members.map(member => {
       const memberDeposits = deposits.filter(dep => String(dep.member) === String(member._id));
       const totalDeposited = memberDeposits.reduce((sum, dep) => sum + dep.amount, 0);
@@ -361,6 +376,8 @@ router.get('/member-summary', async (req, res) => {
 
       // Proportional share of fund based on deposited amount
       const depositShare = totalDeposits > 0 ? totalDeposited / totalDeposits : 0;
+      const rawPercent = Math.round(depositShare * 10000) / 100;
+      totalAllocatedPercent += rawPercent;
 
       // Profit shares
       const currentProfit = currentProfitPool * depositShare;
@@ -378,7 +395,7 @@ router.get('/member-summary', async (req, res) => {
         monthlyDepositAmount: member.monthlyDepositAmount,
         totalDeposited,
         totalDue,
-        depositSharePercent: Math.round(depositShare * 10000) / 100, // e.g. 12.34
+        depositSharePercent: rawPercent, // e.g. 12.34
         currentProfit: Math.round(currentProfit),
         futureProfit: Math.round(futureProfit),
         currentBalance: Math.round(memberCurrentBalance),
@@ -386,6 +403,21 @@ router.get('/member-summary', async (req, res) => {
         status: member.status
       };
     });
+
+    // Guarantee exact 100.00% sum by adjusting minor rounding difference (e.g., 0.01%) on top depositor
+    if (totalDeposits > 0 && memberReport.length > 0) {
+      totalAllocatedPercent = Number(totalAllocatedPercent.toFixed(2));
+      if (totalAllocatedPercent !== 100) {
+        const diff = Number((100 - totalAllocatedPercent).toFixed(2));
+        let maxIdx = 0;
+        for (let i = 1; i < memberReport.length; i++) {
+          if (memberReport[i].totalDeposited > memberReport[maxIdx].totalDeposited) {
+            maxIdx = i;
+          }
+        }
+        memberReport[maxIdx].depositSharePercent = Number((memberReport[maxIdx].depositSharePercent + diff).toFixed(2));
+      }
+    }
 
     res.json({
       memberReport,

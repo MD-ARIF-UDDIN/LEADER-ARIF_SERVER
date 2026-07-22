@@ -85,6 +85,19 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+// Helper to normalize month string to YYYY-MM format
+const normalizeMonth = (m) => {
+  if (!m) return '';
+  const trimmed = String(m).trim();
+  const parts = trimmed.split('-');
+  if (parts.length === 2) {
+    const year = parts[0];
+    const month = parts[1].padStart(2, '0');
+    return `${year}-${month}`;
+  }
+  return trimmed;
+};
+
 // @desc    Get single member details with calculations & due schedules
 // @route   GET /api/members/:id
 // @access  Private (all roles can view any member)
@@ -106,8 +119,8 @@ router.get('/:id', protect, async (req, res) => {
     // Generate monthly schedule status
     const expectedMonths = generateMonthList(member.joiningDate);
     const schedule = expectedMonths.map((mStr) => {
-      // Find deposits corresponding to this specific month YYYY-MM
-      const monthDeposits = deposits.filter((d) => d.month === mStr);
+      // Find deposits corresponding to this specific month YYYY-MM (normalized)
+      const monthDeposits = deposits.filter((d) => normalizeMonth(d.month) === mStr);
       const paidAmount = monthDeposits.reduce((sum, d) => sum + d.amount, 0);
       const isPaid = paidAmount >= member.monthlyDepositAmount;
       

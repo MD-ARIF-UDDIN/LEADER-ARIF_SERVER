@@ -76,6 +76,19 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+// Helper to normalize month string to YYYY-MM format
+const normalizeMonth = (m) => {
+  if (!m) return '';
+  const trimmed = String(m).trim();
+  const parts = trimmed.split('-');
+  if (parts.length === 2) {
+    const year = parts[0];
+    const month = parts[1].padStart(2, '0');
+    return `${year}-${month}`;
+  }
+  return trimmed;
+};
+
 // @desc    Get single project details with calculations & schedules
 // @route   GET /api/projects/:id
 // @access  Private
@@ -105,7 +118,7 @@ router.get('/:id', protect, async (req, res) => {
     })();
 
     const schedule = durationMonthsList.map((mStr) => {
-      const monthInstallments = installments.filter((inst) => inst.month === mStr);
+      const monthInstallments = installments.filter((inst) => normalizeMonth(inst.month) === mStr);
       const paidAmount = monthInstallments.reduce((sum, inst) => sum + inst.amount, 0);
       const isPaid = paidAmount >= project.monthlyInstallmentAmount;
       
